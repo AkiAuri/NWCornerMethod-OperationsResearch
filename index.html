@@ -1183,7 +1183,7 @@
         const step = steppingStoneSteps[steppingStoneIndex];
         const stepOutput = document.getElementById("steppingStoneOutput");
         const steppingStoneTable = document.getElementById("steppingStoneTable");
-        // Show allocation table
+        // Show allocation table with cost in every cell
         steppingStoneTable.innerHTML = '';
         const header = document.createElement('tr');
         header.innerHTML = '<th></th>' + demand.map((_, j) => `<th>D${j + 1}</th>`).join('') + '<th>SUPPLY</th>';
@@ -1196,7 +1196,12 @@
             if (step.loop && step.loop.some(([ri, rj]) => ri === i && rj === j)) {
               highlight = ' style="background: #ffe0b3;"';
             }
-            return `<td${highlight}>${val === '' ? '' : val}</td>`;
+            // Always show cost in gray, allocation in bold if present
+            if (val === '' || val === undefined) {
+              return `<td${highlight}><span style='color:gray;'>${costMatrix[i][j]}</span></td>`;
+            } else {
+              return `<td${highlight}><span style='font-weight:bold;'>${val}</span> | <span style='color:gray;'>${costMatrix[i][j]}</span></td>`;
+            }
           }).join('') + '<td></td>';
           steppingStoneTable.appendChild(tr);
         });
@@ -1209,6 +1214,17 @@
         html += '</table>';
         // Adjustment summary
         let summary = `<div>${step.message}</div>`;
+        if (steppingStoneIndex === 0) {
+          // Initial computation: show total cost for initial solution
+          let total = 0;
+          for (let i = 0; i < step.allocation.length; i++) {
+            for (let j = 0; j < step.allocation[0].length; j++) {
+              const v = step.allocation[i][j];
+              if (v !== '' && !isNaN(v)) total += v * costMatrix[i][j];
+            }
+          }
+          summary += `<div style='color:blue;'><b>Initial Total Cost: ${total}</b></div>`;
+        }
         if (step.adjustment) {
           summary += `<div>Adjustment: add/subtract <b>${step.adjustment.minAlloc}</b> along the loop.</div>`;
         }
