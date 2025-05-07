@@ -1205,13 +1205,20 @@
           }).join('') + '<td></td>';
           steppingStoneTable.appendChild(tr);
         });
-        // Show opportunity cost table
+
+        // Show opportunity cost table and solution breakdown for all empty cells (even on initial step)
         let html = '<table border="1"><tr><th>Cell</th><th>Formula</th><th>Opportunity Cost</th></tr>';
+        let solutionList = '';
+        let hasNegative = false;
         for (const cell of step.opportunityCosts || []) {
           const highlight = step.minCell && cell.row === step.minCell.row && cell.col === step.minCell.col && cell.cost < 0 ? ' style="background: #ffb3b3;"' : '';
+          if (cell.cost < 0) hasNegative = true;
           html += `<tr${highlight}><td>S${cell.row + 1},D${cell.col + 1}</td><td>${cell.formula}</td><td>${cell.cost}</td></tr>`;
+          // Solution breakdown below the table
+          solutionList += `<div>S${cell.row + 1},D${cell.col + 1} = ${cell.formula} = <b>${cell.cost}</b></div>`;
         }
         html += '</table>';
+
         // Adjustment summary
         let summary = `<div>${step.message}</div>`;
         if (steppingStoneIndex === 0) {
@@ -1239,7 +1246,8 @@
           }
           summary += `<div style='color:green;'><b>Optimal! Total Minimum Cost: ${total}</b></div>`;
         }
-        stepOutput.innerHTML = html + summary;
+        // Show the opportunity cost table, then the solution breakdown below
+        stepOutput.innerHTML = html + '<div style="margin-top:10px;">' + solutionList + '</div>' + summary;
       }
 
       // Stepping Stone core logic: find opportunity costs for all empty cells
