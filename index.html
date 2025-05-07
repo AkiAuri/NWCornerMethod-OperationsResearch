@@ -671,6 +671,18 @@
         const allocationTable = document.getElementById("allocationTable");
         const nextStepButton = document.getElementById("nextStepButton");
 
+        // Check if all supply and demand are zero (solution complete)
+        if (steps.length > 0) {
+          const lastStep = steps[steps.length - 1];
+          if (lastStep.supplyLeft && lastStep.demandLeft &&
+            lastStep.supplyLeft.every(x => x === 0) &&
+            lastStep.demandLeft.every(x => x === 0)) {
+            nextScreen("steppingStoneScreen");
+            showSteppingStoneStep();
+            return;
+          }
+        }
+
         if (stepIndex === 0) {
           // First step: Show initial state and add dummy if needed
           const { message, snapshot, supplyLeft, demandLeft, needsDummy } =
@@ -873,7 +885,6 @@
           (stepIndex > 1 || (stepIndex === 1 && totalSupply === totalDemand)) &&
           stepIndex <= steps.length
         ) {
-          // Regular allocation steps
           let currentStep;
 
           if (totalSupply === totalDemand && stepIndex === 1) {
@@ -905,9 +916,15 @@
 
             currentStep = steps[1]; // Get the first allocation step
           } else {
-            // Get the current step (adjusted for dummy step)
             const stepAdjustment = totalSupply !== totalDemand ? 1 : 0;
             currentStep = steps[stepIndex - stepAdjustment];
+          }
+
+          // Defensive: If currentStep is undefined, switch to stepping stone
+          if (!currentStep) {
+            nextScreen("steppingStoneScreen");
+            showSteppingStoneStep();
+            return;
           }
 
           const { message, snapshot, supplyLeft, demandLeft } = currentStep;
