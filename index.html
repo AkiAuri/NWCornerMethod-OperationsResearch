@@ -1026,9 +1026,10 @@
           // Update the step output
           stepOutput.innerHTML = `<p class="step" style="color: green;">All allocations completed. Supply and demand are now zero.</p>`;
 
-          // Overwrite the button to "Compute Cost"
-          nextStepButton.textContent = "Compute Cost";
-          nextStepButton.onclick = displayFinalCost;
+          // Instead of updating the button, immediately switch to Stepping Stone Method
+          nextScreen("steppingStoneScreen");
+          showSteppingStoneStep();
+          return; // Prevent further execution
         }
       }
 
@@ -1155,38 +1156,138 @@
       }
 
       function calculateCostForCell(row, col) {
-        // Implement logic to calculate the opportunity cost for a specific cell
-        // This involves forming a closed loop and summing the costs along the loop
-        // Alternate between adding and subtracting costs along the loop
-        return 0; // Placeholder
+        // Find a closed loop for the empty cell (row, col)
+        // Returns {cost, formula, path}
+        // 1. Find a path: start at (row,col), alternate between allocated cells in row/col
+        // 2. Alternate + and - for cost sum
+        // 3. Return cost, formula string, and path
+        const visited = Array.from({ length: supplyCount }, () => Array(demandCount).fill(false));
+        function dfs(r, c, path, isRow, start) {
+          if (r === row && c === col && path.length > 0) {
+            // Closed loop
+            return path;
+          }
+          if (visited[r][c]) return null;
+          visited[r][c] = true;
+          let result = null;
+          if (isRow) {
+            // Move along row: find allocated cells in this row (except start)
+            for (let j = 0; j < demandCount; j++) {
+              if ((r !== row || j !== col) && allocationMatrix[r][j] !== "" && !visited[r][j]) {
+                result = dfs(r, j, [...path, [r, j]], false, false);
+                if (result) break;
+              }
+            }
+          } else {
+            // Move along column: find allocated cells in this col (except start)
+            for (let i = 0; i < supplyCount; i++) {
+              if ((i !== row || c !== col) && allocationMatrix[i][c] !== "" && !visited[i][c]) {
+                result = dfs(i, c, [...path, [i, c]], true, false);
+                if (result) break;
+              }
+            }
+          }
+          visited[r][c] = false;
+          return result;
+        }
+        // Start from (row,col), try to build a loop
+        let loop = null;
+        for (let j = 0; j < demandCount; j++) {
+          if (allocationMatrix[row][j] !== "") {
+            loop = dfs(row, j, [[row, col], [row, j]], false, true);
+            if (loop) break;
+          }
+        }
+        if (!loop) {
+          for (let i = 0; i < supplyCount; i++) {
+            if (allocationMatrix[i][col] !== "") {
+              loop = dfs(i, col, [[row, col], [i, col]], true, true);
+              if (loop) break;
+            }
+          }
+        }
+        if (!loop) return { cost: 0, formula: "No loop", path: [] };
+        // Calculate cost and formula
+        let cost = 0;
+        let formula = "";
+        for (let k = 0; k < loop.length; k++) {
+          const [i, j] = loop[k];
+          const sign = k % 2 === 0 ? "+" : "-";
+          if (k === 0) formula += `${costMatrix[i][j]}`;
+          else formula += ` ${sign} ${costMatrix[i][j]}`;
+          cost += (k % 2 === 0 ? 1 : -1) * costMatrix[i][j];
+        }
+        return { cost, formula, path: loop };
       }
 
       function adjustAllocations(cell) {
-        // Implement logic to adjust allocations along the closed loop
-        // Increase allocation in the unallocated cell and adjust other allocations
+        // Find the loop for this cell
+        const { path } = calculateCostForCell(cell.row, cell.col);
+        // Find the minimum allocation on the negative positions (odd indices)
+        let minAlloc = Infinity;
+        for (let k = 1; k < path.length; k += 2) {
+          const [i, j] = path[k];
+          if (allocationMatrix[i][j] < minAlloc) minAlloc = allocationMatrix[i][j];
+        }
+        // Adjust allocations along the loop
+        for (let k = 0; k < path.length; k++) {
+          const [i, j] = path[k];
+          if (k % 2 === 0) {
+            if (allocationMatrix[i][j] === "") allocationMatrix[i][j] = 0;
+            allocationMatrix[i][j] += minAlloc;
+          } else {
+            allocationMatrix[i][j] -= minAlloc;
+            if (allocationMatrix[i][j] === 0) allocationMatrix[i][j] = "";
+          }
+        }
       }
 
       function showSteppingStoneStep() {
         const stepOutput = document.getElementById("steppingStoneOutput");
-        const steppingStoneTable =
-          document.getElementById("steppingStoneTable");
-
-        if (steppingStoneIndex < steppingStoneSteps.length) {
-          const { message, details } = steppingStoneSteps[steppingStoneIndex];
-          stepOutput.innerHTML = `
-          <div class="step">
-            <p><strong>${message}</strong></p>
-            <p>${details}</p>
-          </div>
-        `;
-          steppingStoneIndex++;
+        const steppingStoneTable = document.getElementById("steppingStoneTable");
+        // Calculate opportunity costs for all empty cells
+        let opps = [];
+        for (let i = 0; i < supplyCount; i++) {
+          for (let j = 0; j < demandCount; j++) {
+            if (allocationMatrix[i][j] === "") {
+              const res = calculateCostForCell(i, j);
+              opps.push({ row: i, col: j, ...res });
+            }
+          }
+        }
+        // Find the most negative
+        let minCell = null;
+        for (const cell of opps) {
+          if (!minCell || cell.cost < minCell.cost) minCell = cell;
+        }
+        // Build opportunity cost table
+        let html = '<table border="1"><tr><th>Cell</th><th>Formula</th><th>Opportunity Cost</th></tr>';
+        for (const cell of opps) {
+          const highlight = cell === minCell && cell.cost < 0 ? ' style="background: #ffb3b3;"' : '';
+          html += `<tr${highlight}><td>S${cell.row + 1},D${cell.col + 1}</td><td>${cell.formula}</td><td>${cell.cost}</td></tr>`;
+        }
+        html += '</table>';
+        // Solution summary
+        let summary = '';
+        if (minCell && minCell.cost < 0) {
+          summary = `<div style='color:red;'>Most negative: S${minCell.row + 1},D${minCell.col + 1} = ${minCell.cost} (improve this cell)</div>`;
         } else {
-          stepOutput.innerHTML = `
-          <div class="step" style="color: green;">
-            <p><strong>Stepping Stone Method Completed.</strong></p>
-            <p>The solution is optimal.</p>
-          </div>
-        `;
+          summary = `<div style='color:green;'>All opportunity costs are non-negative. Solution is optimal.</div>`;
+        }
+        stepOutput.innerHTML = html + summary;
+        // Show allocation table
+        steppingStoneTable.innerHTML = '';
+        const header = document.createElement('tr');
+        header.innerHTML = '<th></th>' + demand.map((_, j) => `<th>D${j + 1}</th>`).join('') + '<th>SUPPLY</th>';
+        steppingStoneTable.appendChild(header);
+        allocationMatrix.forEach((row, i) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<th>S${i + 1}</th>` + row.map((val) => `<td>${val === '' ? '' : val}</td>`).join('') + '<td></td>';
+          steppingStoneTable.appendChild(tr);
+        });
+        // If not optimal, adjust allocations for next step
+        if (minCell && minCell.cost < 0) {
+          adjustAllocations(minCell);
         }
       }
 
