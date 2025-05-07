@@ -207,6 +207,7 @@
     <h2>Stepping Stone Method</h2>
     <div id="steppingStoneOutput"></div>
     <table id="steppingStoneTable"></table>
+    <button id="ssmNextStepButton" onclick="showSteppingStoneStep()" style="margin-bottom: 10px;">Next SSM Step</button>
     <div class="button-container">
         <button onclick="goBackToInputMatrix()">Back</button>
         <button id="restartButton" onclick="location.reload()">Restart</button>
@@ -673,13 +674,11 @@
 
         if (stepIndex === 0) {
             // First step: Show initial state and add dummy if needed
-            const { message, snapshot, supplyLeft, demandLeft, needsDummy } =
-                steps[0];
+            const { message, snapshot, supplyLeft, demandLeft, needsDummy } = steps[0];
 
-            // Clear the allocation table
             allocationTable.innerHTML = "";
 
-            // Create the table header
+            // Table header
             const header = document.createElement("tr");
             header.innerHTML =
                 "<th></th>" +
@@ -687,37 +686,30 @@
                 "<th>SUPPLY</th>";
             allocationTable.appendChild(header);
 
-            // Populate the table rows with the current snapshot
             snapshot.forEach((row, i) => {
                 const tr = document.createElement("tr");
                 tr.innerHTML =
                     `<th>S${i + 1}</th>` +
-                    row
-                        .map((val, j) => {
-                            const cost = costMatrix[i][j];
-                            return `<td><span style="color: gray;">${cost}</span></td>`;
-                        })
-                        .join("") +
+                    row.map((val, j) => {
+                        const cost = costMatrix[i][j];
+                        return `<td><span style="color: gray;">${cost}</span></td>`;
+                    }).join("") +
                     `<td>${supplyLeft[i]}</td>`;
                 allocationTable.appendChild(tr);
             });
 
-            // Add the demand row
+            // Demand row
             const demandRow = document.createElement("tr");
             demandRow.innerHTML =
                 "<th>DEMAND</th>" +
                 demandLeft.map((val) => `<td>${val}</td>`).join("") +
                 `<td class="diagonal-cell">
-            <div class="top-value ${
-                    needsDummy ? "not-equal" : "equal"
-                }">${totalSupply}</div>
-            <div class="bottom-value ${
-                    needsDummy ? "not-equal" : "equal"
-                }">${totalDemand}</div>
-          </td>`;
+                <div class="top-value ${needsDummy ? "not-equal" : "equal"}">${totalSupply}</div>
+                <div class="bottom-value ${needsDummy ? "not-equal" : "equal"}">${totalDemand}</div>
+            </td>`;
             allocationTable.appendChild(demandRow);
 
-            // Update the step output
+            // Step output
             if (needsDummy) {
                 stepOutput.innerHTML = `<p class="step">Total supply (${totalSupply}) and demand (${totalDemand}) are not equal. Click 'Next Step' to add a dummy row/column.</p>`;
             } else {
@@ -735,139 +727,90 @@
                 // Add dummy demand column
                 demand.push(totalSupply - totalDemand);
                 for (let i = 0; i < costMatrix.length; i++) {
-                    costMatrix[i].push(0); // Cost to dummy demand
+                    costMatrix[i].push(0);
                 }
                 demandCount++;
-
-                // Update allocation matrix
                 allocationMatrix = Array.from({ length: supplyCount }, () =>
                     Array(demandCount).fill("")
                 );
-
-                // Push a step for adding dummy demand column
                 steps.push({
-                    message: `Added dummy demand column DD${demandCount} with demand ${
-                        totalSupply - totalDemand
-                    }.`,
+                    message: `Added dummy demand column DD${demandCount} with demand ${totalSupply - totalDemand}.`,
                     snapshot: allocationMatrix.map((row) => [...row]),
                     supplyLeft: [...supply],
                     demandLeft: [...demand],
                 });
-
-                stepOutput.innerHTML = `<p class="step">Added dummy demand column DD${demandCount} with demand ${
-                    totalSupply - totalDemand
-                }.</p>`;
+                stepOutput.innerHTML = `<p class="step">Added dummy demand column DD${demandCount} with demand ${totalSupply - totalDemand}.</p>`;
             } else if (totalDemand > totalSupply) {
                 // Add dummy supply row
                 supply.push(totalDemand - totalSupply);
-                const dummyRow = Array(demandCount).fill(0); // Cost from dummy supply
+                const dummyRow = Array(demandCount).fill(0);
                 costMatrix.push(dummyRow);
                 supplyCount++;
-
-                // Update allocation matrix
                 allocationMatrix = Array.from({ length: supplyCount }, () =>
                     Array(demandCount).fill("")
                 );
-
-                // Push a step for adding dummy supply row
                 steps.push({
-                    message: `Added dummy supply row DS${supplyCount} with supply ${
-                        totalDemand - totalSupply
-                    }.`,
+                    message: `Added dummy supply row DS${supplyCount} with supply ${totalDemand - totalSupply}.`,
                     snapshot: allocationMatrix.map((row) => [...row]),
                     supplyLeft: [...supply],
                     demandLeft: [...demand],
                 });
-
-                stepOutput.innerHTML = `<p class="step">Added dummy supply row DS${supplyCount} with supply ${
-                    totalDemand - totalSupply
-                }.</p>`;
+                stepOutput.innerHTML = `<p class="step">Added dummy supply row DS${supplyCount} with supply ${totalDemand - totalSupply}.</p>`;
             }
-
             dummyAdded = true;
 
-            // Show the updated table with dummy row/column
+            // Show updated table
             allocationTable.innerHTML = "";
-
-            // Create the table header
             const header = document.createElement("tr");
             header.innerHTML =
                 "<th></th>" +
-                demand
-                    .map((_, j) => {
-                        if (j === demandCount - 1 && totalSupply > totalDemand) {
-                            return `<th>DD${j + 1}</th>`;
-                        }
-                        return `<th>D${j + 1}</th>`;
-                    })
-                    .join("") +
+                demand.map((_, j) => {
+                    if (j === demandCount - 1 && totalSupply > totalDemand) {
+                        return `<th>DD${j + 1}</th>`;
+                    }
+                    return `<th>D${j + 1}</th>`;
+                }).join("") +
                 "<th>SUPPLY</th>";
             allocationTable.appendChild(header);
 
-            // Populate the table rows with the current snapshot
             for (let i = 0; i < supplyCount; i++) {
                 const tr = document.createElement("tr");
-                let rowHeader = `<th>${
-                    i === supplyCount - 1 && totalDemand > totalSupply
-                        ? "DS"
-                        : "S" + (i + 1)
-                }</th>`;
-
+                let rowHeader = `<th>${i === supplyCount - 1 && totalDemand > totalSupply ? "DS" : "S" + (i + 1)}</th>`;
                 let rowContent = "";
                 for (let j = 0; j < demandCount; j++) {
                     const cost = costMatrix[i][j];
                     rowContent += `<td><span style="color: gray;">${cost}</span></td>`;
                 }
-
                 tr.innerHTML = rowHeader + rowContent + `<td>${supply[i]}</td>`;
                 allocationTable.appendChild(tr);
             }
-
-            // Add the demand row
             const demandRow = document.createElement("tr");
             demandRow.innerHTML =
                 "<th>DEMAND</th>" +
                 demand.map((val) => `<td>${val}</td>`).join("") +
                 `<td class="diagonal-cell">
-            <div class="top-value equal">${supply.reduce(
-                    (a, b) => a + b,
-                    0
-                )}</div>
-            <div class="bottom-value equal">${demand.reduce(
-                    (a, b) => a + b,
-                    0
-                )}</div>
-          </td>`;
+                <div class="top-value equal">${supply.reduce((a, b) => a + b, 0)}</div>
+                <div class="bottom-value equal">${demand.reduce((a, b) => a + b, 0)}</div>
+            </td>`;
             allocationTable.appendChild(demandRow);
 
             // Prepare for allocation steps
-            let supplyLeft = [...supply],
-                demandLeft = [...demand];
-            let i = 0,
-                j = 0;
-
+            let supplyLeft = [...supply], demandLeft = [...demand];
+            let i = 0, j = 0;
             while (i < supplyCount && j < demandCount) {
                 let alloc = Math.min(supplyLeft[i], demandLeft[j]);
                 allocationMatrix[i][j] = alloc;
-
                 steps.push({
-                    message: `Allocating ${alloc} units from ${
-                        i === supplyCount - 1 && totalDemand > totalSupply ? "DS" : "S"
-                    }${i + 1} to ${
-                        j === demandCount - 1 && totalSupply > totalDemand ? "DD" : "D"
-                    }${j + 1}`,
+                    message: `Allocating ${alloc} units from ${i === supplyCount - 1 && totalDemand > totalSupply ? "DS" : "S"}${i + 1} to ${j === demandCount - 1 && totalSupply > totalDemand ? "DD" : "D"}${j + 1}`,
                     snapshot: allocationMatrix.map((row) => [...row]),
                     supplyLeft: [...supplyLeft],
                     demandLeft: [...demandLeft],
                 });
-
                 supplyLeft[i] -= alloc;
                 demandLeft[j] -= alloc;
-
                 if (supplyLeft[i] === 0) i++;
                 if (demandLeft[j] === 0) j++;
             }
-
             stepIndex++;
         } else if (
             (stepIndex > 1 || (stepIndex === 1 && totalSupply === totalDemand)) &&
@@ -875,70 +818,53 @@
         ) {
             // Regular allocation steps
             let currentStep;
-
             if (totalSupply === totalDemand && stepIndex === 1) {
-                // If supply equals demand, we need to prepare the allocation steps
-                let supplyLeft = [...supply],
-                    demandLeft = [...demand];
-                let i = 0,
-                    j = 0;
-
+                let supplyLeft = [...supply], demandLeft = [...demand];
+                let i = 0, j = 0;
                 while (i < supplyCount && j < demandCount) {
                     let alloc = Math.min(supplyLeft[i], demandLeft[j]);
                     allocationMatrix[i][j] = alloc;
-
                     steps.push({
-                        message: `Allocating ${alloc} units from S${i + 1} to D${
-                            j + 1
-                        }`,
+                        message: `Allocating ${alloc} units from S${i + 1} to D${j + 1}`,
                         snapshot: allocationMatrix.map((row) => [...row]),
                         supplyLeft: [...supplyLeft],
                         demandLeft: [...demandLeft],
                     });
-
                     supplyLeft[i] -= alloc;
                     demandLeft[j] -= alloc;
-
                     if (supplyLeft[i] === 0) i++;
                     if (demandLeft[j] === 0) j++;
                 }
-
-                currentStep = steps[1]; // Get the first allocation step
+                currentStep = steps[1];
             } else {
-                // Get the current step (adjusted for dummy step)
                 const stepAdjustment = totalSupply !== totalDemand ? 1 : 0;
                 currentStep = steps[stepIndex - stepAdjustment];
             }
-
+            if (!currentStep) {
+                // All allocations complete: transition to SSM!
+                setTimeout(() => {
+                    nextScreen('steppingStoneScreen');
+                    showSteppingStoneStep();
+                }, 400);
+                return;
+            }
             const { message, snapshot, supplyLeft, demandLeft } = currentStep;
-
-            // Clear the allocation table
             allocationTable.innerHTML = "";
-
-            // Create the table header
             const header = document.createElement("tr");
             header.innerHTML =
                 "<th></th>" +
-                demand
-                    .map((_, j) => {
-                        if (j === demandCount - 1 && totalSupply > totalDemand) {
-                            return `<th>DD${j + 1}</th>`;
-                        }
-                        return `<th>D${j + 1}</th>`;
-                    })
-                    .join("") +
+                demand.map((_, j) => {
+                    if (j === demandCount - 1 && totalSupply > totalDemand) {
+                        return `<th>DD${j + 1}</th>`;
+                    }
+                    return `<th>D${j + 1}</th>`;
+                }).join("") +
                 "<th>SUPPLY</th>";
             allocationTable.appendChild(header);
 
-            // Populate the table rows with the current snapshot
             snapshot.forEach((row, i) => {
                 const tr = document.createElement("tr");
-                let rowHeader = `<th>${
-                    i === supplyCount - 1 && totalDemand > totalSupply
-                        ? "DS" + (i + 1)
-                        : "S" + (i + 1)
-                }</th>`;
-
+                let rowHeader = `<th>${i === supplyCount - 1 && totalDemand > totalSupply ? "DS" + (i + 1) : "S" + (i + 1)}</th>`;
                 let rowContent = "";
                 for (let j = 0; j < demandCount; j++) {
                     const cost = costMatrix[i][j];
@@ -953,82 +879,28 @@
                         rowContent += `<td><span style="color: black; font-weight: bold;">${val} | <span style="color: gray;">${cost}</span></span></td>`;
                     }
                 }
-
                 tr.innerHTML = rowHeader + rowContent + `<td>${supplyLeft[i]}</td>`;
                 allocationTable.appendChild(tr);
             });
 
-            // Add the demand row
             const demandRow = document.createElement("tr");
             demandRow.innerHTML =
                 "<th>DEMAND</th>" +
                 demandLeft.map((val) => `<td>${val}</td>`).join("") +
                 `<td class="diagonal-cell">
-            <div class="top-value equal">${supply.reduce(
-                    (a, b) => a + b,
-                    0
-                )}</div>
-            <div class="bottom-value equal">${demand.reduce(
-                    (a, b) => a + b,
-                    0
-                )}</div>
-          </td>`;
+                <div class="top-value equal">${supply.reduce((a, b) => a + b, 0)}</div>
+                <div class="bottom-value equal">${demand.reduce((a, b) => a + b, 0)}</div>
+            </td>`;
             allocationTable.appendChild(demandRow);
 
-            // Update the step output
             stepOutput.innerHTML = `<p class="step">${message}</p>`;
             stepIndex++;
         } else {
-            // Final step: Set supply and demand to zero
-            allocationTable.innerHTML = "";
-            const header = document.createElement("tr");
-            header.innerHTML =
-                "<th></th>" +
-                demand
-                    .map((_, j) => {
-                        if (j === demandCount - 1 && totalSupply > totalDemand) {
-                            return `<th>DD${j + 1}</th>`;
-                        }
-                        return `<th>D${j + 1}</th>`;
-                    })
-                    .join("") +
-                "<th>SUPPLY</th>";
-            allocationTable.appendChild(header);
-
-            allocationMatrix.forEach((row, i) => {
-                const tr = document.createElement("tr");
-                let rowHeader = `<th>${
-                    i === supplyCount - 1 && totalDemand > totalSupply
-                        ? "DS" + (i + 1)
-                        : "S" + (i + 1)
-                }</th>`;
-
-                let rowContent = "";
-                for (let j = 0; j < demandCount; j++) {
-                    const val = row[j];
-                    rowContent += `<td>${val}</td>`;
-                }
-
-                tr.innerHTML = rowHeader + rowContent + `<td>0</td>`; // Set supply to zero
-                allocationTable.appendChild(tr);
-            });
-
-            const demandRow = document.createElement("tr");
-            demandRow.innerHTML =
-                "<th>DEMAND</th>" +
-                demand.map(() => `<td>0</td>`).join("") +
-                `<td class="diagonal-cell">
-            <div class="top-value equal">0</div>
-            <div class="bottom-value equal">0</div>
-          </td>`;
-            allocationTable.appendChild(demandRow);
-
-            // Update the step output
-            stepOutput.innerHTML = `<p class="step" style="color: green;">All allocations completed. Supply and demand are now zero.</p>`;
-
-            // Overwrite the button to "Compute Cost"
-            nextStepButton.textContent = "Compute Cost";
-            nextStepButton.onclick = displayFinalCost;
+            // All allocations complete: transition to SSM!
+            setTimeout(() => {
+                nextScreen('steppingStoneScreen');
+                showSteppingStoneStep();
+            }, 400);
         }
     }
 
@@ -1108,104 +980,114 @@
     let ssmStepIndex = 0;
 
     // Main entry: call this to start Stepping Stone step-by-step
-    function solveSteppingStoneStepByStep() {
-        // Reset
-        ssmSteps = [];
-        ssmStepIndex = 0;
+    function showSteppingStoneStep() {
+        const stepOutput = document.getElementById("steppingStoneOutput");
+        const steppingStoneTable = document.getElementById("steppingStoneTable");
+        const nextBtn = document.getElementById("ssmNextStepButton");
 
-        // Deep copy allocation matrix to avoid mutating the main one immediately
-        let alloc = allocationMatrix.map(row => row.slice());
-
-        // Repeat until optimal (all opportunity costs >= 0)
-        while (true) {
-            // 1. Calculate opportunity costs for all empty cells
-            const ocResult = calculateAllOpportunityCosts(alloc, costMatrix);
-
-            // Push step: Show all opportunity costs
-            ssmSteps.push({
-                type: "opportunity-costs",
-                message: "Calculated opportunity costs for empty cells.",
-                alloc: alloc.map(row => row.slice()),
-                opportunityCosts: ocResult.opportunityCosts.slice(),
-            });
-
-            // 2. Find the most negative opportunity cost
-            let minCell = null;
-            let minCost = 0;
-            for (const cell of ocResult.opportunityCosts) {
-                if (cell.cost < minCost) {
-                    minCost = cell.cost;
-                    minCell = cell;
-                }
-            }
-
-            // 3. If all opportunity costs >= 0, optimal!
-            if (!minCell) {
-                ssmSteps.push({
-                    type: "optimal",
-                    message: "The solution is optimal (all opportunity costs are non-negative).",
-                    alloc: alloc.map(row => row.slice()),
-                });
-                break;
-            }
-
-            // 4. Trace the closed loop for minCell (the improvement cell)
-            const loop = findClosedPath(alloc, minCell.row, minCell.col);
-
-            if (!loop) {
-                ssmSteps.push({
-                    type: "error",
-                    message: `Could not find a closed path for cell S${minCell.row + 1} D${minCell.col + 1}.`,
-                    alloc: alloc.map(row => row.slice()),
-                });
-                break;
-            }
-
-            // 5. Find theta (minimum allocation on negative positions in the loop)
-            let theta = Infinity;
-            for (let k = 1; k < loop.length; k += 2) {
-                const [i, j] = loop[k];
-                if (alloc[i][j] !== "" && alloc[i][j] < theta) {
-                    theta = alloc[i][j];
-                }
-            }
-
-            // 6. Show the cycle and theta
-            ssmSteps.push({
-                type: "cycle-found",
-                message: `Cycle found for S${minCell.row + 1} D${minCell.col + 1}, theta = ${theta}.`,
-                alloc: alloc.map(row => row.slice()),
-                loop,
-                theta,
-                improveCell: { row: minCell.row, col: minCell.col },
-            });
-
-            // 7. Adjust allocations along the loop
-            for (let k = 0; k < loop.length; ++k) {
-                const [i, j] = loop[k];
-                if (alloc[i][j] === "") alloc[i][j] = 0;
-                if (k % 2 === 0) {
-                    // Even: add theta
-                    alloc[i][j] += theta;
-                } else {
-                    // Odd: subtract theta
-                    alloc[i][j] -= theta;
-                }
-                // Optional: clear zero allocations
-                if (alloc[i][j] === 0) alloc[i][j] = "";
-            }
-
-            // 8. Push step: Show updated allocation
-            ssmSteps.push({
-                type: "allocation-update",
-                message: `Adjusted allocation along the loop. Updated allocation matrix.`,
-                alloc: alloc.map(row => row.slice()),
-            });
+        // If we've finished all steps, show summary and disable button
+        if (ssmStepIndex >= ssmSteps.length) {
+            stepOutput.innerHTML = `<div class="step" style="color: green;"><strong>Stepping Stone Method Completed.</strong></div>`;
+            steppingStoneTable.innerHTML = "";
+            if (nextBtn) nextBtn.disabled = true;
+            showSteppingStoneSummary();
+            return;
         }
 
-        // Show first step
-        nextScreen("steppingStoneScreen");
-        showSteppingStoneStep();
+        const step = ssmSteps[ssmStepIndex];
+
+        // Build output html for this step
+        let html = `<div class="step"><strong>${step.message}</strong></div>`;
+
+        // Highlighting helpers
+        function isInCycle(i, j, cycle) {
+            if (!cycle) return false;
+            return cycle.some(([ii, jj]) => ii === i && jj === j);
+        }
+        function isImproveCell(i, j) {
+            return step.improveCell && step.improveCell.row === i && step.improveCell.col === j;
+        }
+
+        // Show opportunity cost table & formulas
+        if (step.type === "opportunity-costs") {
+            html += `<div><b>Opportunity Costs for Empty Cells:</b></div>`;
+            html += `<table border="1" style="margin:10px 0;"><tr><th></th>`;
+            for (let j = 0; j < demandCount; ++j) html += `<th>D${j + 1}</th>`;
+            html += `</tr>`;
+            for (let i = 0; i < supplyCount; ++i) {
+                html += `<tr><th>S${i + 1}</th>`;
+                for (let j = 0; j < demandCount; ++j) {
+                    const oc = step.opportunityCosts.find(cell => cell.row === i && cell.col === j);
+                    const highlight = oc && oc.cost < 0;
+                    html += `<td style="${highlight ? 'background:#ffe0e0;font-weight:bold;' : ''}">${oc ? `<span style="color:${oc.cost < 0 ? 'red' : 'green'}">${oc.cost}</span>` : ""}</td>`;
+                }
+                html += `</tr>`;
+            }
+            html += `</table>`;
+
+            // List all opportunity cost formulas
+            html += `<div><b>Opportunity Cost Formulas:</b><br>`;
+            step.opportunityCosts.forEach(oc => {
+                html += `S${oc.row + 1}D${oc.col + 1}: <span style="color:${oc.cost < 0 ? 'red' : ''}">${oc.cost}</span><br>`;
+            });
+            html += `</div>`;
+        }
+
+        // Show the cycle and theta (with visual cycle highlight)
+        if (step.type === "cycle-found") {
+            html += `<div><b>Cycle for S${step.improveCell.row + 1}D${step.improveCell.col + 1}:</b><br>`;
+            html += step.loop.map(([i, j], idx) =>
+                `<b>${idx % 2 === 0 ? "+" : "-"}</b> S${i + 1}D${j + 1}`
+            ).join(" → ");
+            html += `</div>`;
+            html += `<div>Theta (min allocation subtracted): <b>${step.theta}</b></div>`;
+        }
+
+        // Render allocation table with improvement cell/cycle highlights
+        html += `<div><b>Current Allocation Table:</b></div>`;
+        html += `<table border="1" style="margin:10px 0;"><tr><th></th>`;
+        for (let j = 0; j < demandCount; ++j) html += `<th>D${j + 1}</th>`;
+        html += `</tr>`;
+        for (let i = 0; i < supplyCount; ++i) {
+            html += `<tr><th>S${i + 1}</th>`;
+            for (let j = 0; j < demandCount; ++j) {
+                let cellStyle = "";
+                // Highlight improvement cell
+                if ((step.type === "cycle-found" || step.type === "allocation-update") && isImproveCell(i, j))
+                    cellStyle = "background:#ffe0e0;font-weight:bold;";
+
+                // Highlight cells in the cycle for cycle-found and allocation-update
+                if ((step.type === "cycle-found" || step.type === "allocation-update") && isInCycle(i, j, step.loop))
+                    cellStyle = "background:#fff5d9;border:2px solid orange;font-weight:bold;";
+
+                // Special override for improvement cell
+                if ((step.type === "cycle-found" || step.type === "allocation-update") && isImproveCell(i, j))
+                    cellStyle = "background:#ffe0e0;border:2px solid red;font-weight:bold;";
+
+                html += `<td style="${cellStyle}">${step.alloc[i][j] !== "" ? step.alloc[i][j] : ""}</td>`;
+            }
+            html += `</tr>`;
+        }
+        html += `</table>`;
+
+        // Show total cost formula at the bottom for each step
+        html += steppingStoneCostSummary(step.alloc);
+
+        // If optimal, show the summary below
+        if (step.type === "optimal") {
+            html += `<div class="step" style="color: green;margin-top:1em;"><strong>Stepping Stone Method Completed.<br>Optimal solution found.</strong></div>`;
+        }
+
+        stepOutput.innerHTML = html;
+        steppingStoneTable.innerHTML = ""; // Not used in the new layout
+
+        // Increment to next step for next click
+        ssmStepIndex++;
+
+        // Disable the button if we're on the last step
+        if (ssmStepIndex >= ssmSteps.length && nextBtn) {
+            nextBtn.disabled = true;
+        }
     }
 
     // Calculates all opportunity costs for empty cells
