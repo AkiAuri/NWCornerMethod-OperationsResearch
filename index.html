@@ -667,13 +667,6 @@
       }
 
       function showNextStep() {
-        // Prevent error if no more steps
-        if (stepIndex >= steps.length) {
-          nextScreen("steppingStoneScreen");
-          showSteppingStoneStep();
-          return;
-        }
-
         const stepOutput = document.getElementById("stepOutput");
         const allocationTable = document.getElementById("allocationTable");
         const nextStepButton = document.getElementById("nextStepButton");
