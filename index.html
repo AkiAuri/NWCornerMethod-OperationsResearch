@@ -1121,7 +1121,6 @@
       }
 
       // --- Stepping Stone Step-by-Step Implementation ---
-      // Initializes the stepping stone step-by-step process using the current allocationMatrix
       function startSteppingStoneStepByStep() {
         // Initialize with the current allocationMatrix
         steppingStoneSteps = [];
@@ -1138,24 +1137,23 @@
         showSteppingStoneStepByStep();
       }
 
-      // Advances to the next step in the stepping stone method, updating allocations and opportunity costs
       function steppingStoneNextStep() {
         const prev = steppingStoneSteps[steppingStoneIndex];
         if (prev.isOptimal) return; // Already optimal
         // Deep copy allocation
         let alloc = prev.allocation.map(row => [...row]);
-        // Calculate opportunity costs and find the cell with the most negative cost
+        // Calculate opportunity costs
         const { opportunityCosts, minCell, isOptimal } = steppingStoneStep(alloc, costMatrix);
         let loop = null, adjustment = null;
         if (!isOptimal) {
           loop = minCell.path;
-          // Find min allocation on negative positions in the loop
+          // Find min allocation on negative positions
           let minAlloc = Infinity;
           for (let k = 1; k < loop.length; k += 2) {
             const [i, j] = loop[k];
             if (alloc[i][j] < minAlloc) minAlloc = alloc[i][j];
           }
-          // Adjust allocations along the loop: add to even, subtract from odd positions
+          // Adjust allocations
           for (let k = 0; k < loop.length; k++) {
             const [i, j] = loop[k];
             if (k % 2 === 0) {
@@ -1168,7 +1166,6 @@
           }
           adjustment = { loop, minAlloc };
         }
-        // Save the step
         steppingStoneSteps.push({
           allocation: alloc.map(row => [...row]),
           message: isOptimal ? 'Optimal solution found.' : `Adjusted allocations for S${minCell.row+1},D${minCell.col+1}`,
@@ -1182,7 +1179,6 @@
         showSteppingStoneStepByStep();
       }
 
-      // Renders the current step of the stepping stone method, including allocations and opportunity costs
       function showSteppingStoneStepByStep() {
         const step = steppingStoneSteps[steppingStoneIndex];
         const stepOutput = document.getElementById("steppingStoneOutput");
@@ -1195,7 +1191,7 @@
         step.allocation.forEach((row, i) => {
           const tr = document.createElement('tr');
           tr.innerHTML = `<th>S${i + 1}</th>` + row.map((val, j) => {
-            // Highlight loop cells if present
+            // Highlight loop cells
             let highlight = '';
             if (step.loop && step.loop.some(([ri, rj]) => ri === i && rj === j)) {
               highlight = ' style="background: #ffe0b3;"';
@@ -1209,14 +1205,14 @@
           }).join('') + '<td></td>';
           steppingStoneTable.appendChild(tr);
         });
-        // Show opportunity cost table for all empty cells
+        // Show opportunity cost table
         let html = '<table border="1"><tr><th>Cell</th><th>Formula</th><th>Opportunity Cost</th></tr>';
         for (const cell of step.opportunityCosts || []) {
           const highlight = step.minCell && cell.row === step.minCell.row && cell.col === step.minCell.col && cell.cost < 0 ? ' style="background: #ffb3b3;"' : '';
           html += `<tr${highlight}><td>S${cell.row + 1},D${cell.col + 1}</td><td>${cell.formula}</td><td>${cell.cost}</td></tr>`;
         }
         html += '</table>';
-        // Adjustment summary and cost display
+        // Adjustment summary
         let summary = `<div>${step.message}</div>`;
         if (steppingStoneIndex === 0) {
           // Initial computation: show total cost for initial solution
@@ -1233,7 +1229,7 @@
           summary += `<div>Adjustment: add/subtract <b>${step.adjustment.minAlloc}</b> along the loop.</div>`;
         }
         if (step.isOptimal) {
-          // Calculate total cost for optimal solution
+          // Calculate total cost
           let total = 0;
           for (let i = 0; i < step.allocation.length; i++) {
             for (let j = 0; j < step.allocation[0].length; j++) {
@@ -1246,7 +1242,7 @@
         stepOutput.innerHTML = html + summary;
       }
 
-      // Stepping Stone core logic: find opportunity costs for all empty cells and the most negative one
+      // Stepping Stone core logic: find opportunity costs for all empty cells
       function steppingStoneStep(allocation, costMatrix) {
         const supplyCount = allocation.length;
         const demandCount = allocation[0].length;
@@ -1296,7 +1292,7 @@
           }
           return loop;
         }
-        // For each empty cell, calculate opportunity cost using its closed loop
+        // For each empty cell, calculate opportunity cost
         for (let i = 0; i < supplyCount; i++) {
           for (let j = 0; j < demandCount; j++) {
             if (allocation[i][j] === "") {
@@ -1315,124 +1311,13 @@
             }
           }
         }
-        // Find the most negative opportunity cost cell
+        // Find the most negative
         let minCell = null;
         for (const cell of opportunityCosts) {
           if (!minCell || cell.cost < minCell.cost) minCell = cell;
         }
         const isOptimal = !minCell || minCell.cost >= 0;
         return { opportunityCosts, minCell, isOptimal };
-      }
-
-      // --- Stepping Stone Full Solve ---
-      // Finds a closed loop for a given cell in the allocation matrix using DFS
-      function findClosedLoop(startI, startJ, allocationMatrix) {
-        // DFS to find a closed loop starting and ending at (startI, startJ)
-        // Alternates between row and column, only through allocated cells (not blank)
-        const m = allocationMatrix.length;
-        const n = allocationMatrix[0].length;
-        function dfs(i, j, path, visited, isRow) {
-          if (path.length > 3 && i === startI && j === startJ) {
-            return path.slice(); // Found a loop
-          }
-          let result = null;
-          if (isRow) {
-            for (let col = 0; col < n; col++) {
-              if (col !== j && (allocationMatrix[i][col] !== '' && allocationMatrix[i][col] !== undefined || (i === startI && col === startJ)) && !visited[`${i},${col}`]) {
-                visited[`${i},${col}`] = true;
-                result = dfs(i, col, [...path, [i, col]], visited, false);
-                visited[`${i},${col}`] = false;
-                if (result) return result;
-              }
-            }
-          } else {
-            for (let row = 0; row < m; row++) {
-              if (row !== i && (allocationMatrix[row][j] !== '' && allocationMatrix[row][j] !== undefined || (row === startI && j === startJ)) && !visited[`${row},${j}`]) {
-                visited[`${row},${j}`] = true;
-                result = dfs(row, j, [...path, [row, j]], visited, true);
-                visited[`${row},${j}`] = false;
-                if (result) return result;
-              }
-            }
-          }
-          return null;
-        }
-        // Try to start with row or column move
-        let visited = { [`${startI},${startJ}`]: true };
-        let loop = dfs(startI, startJ, [[startI, startJ]], visited, true);
-        if (loop && loop.length > 3) return loop;
-        visited = { [`${startI},${startJ}`]: true };
-        loop = dfs(startI, startJ, [[startI, startJ]], visited, false);
-        if (loop && loop.length > 3) return loop;
-        return null;
-      }
-
-      // Performs the full stepping stone optimization, returning all steps and the final cost
-      function steppingStoneFullSolve(allocationMatrix, costMatrix) {
-        // Copy allocationMatrix
-        let alloc = allocationMatrix.map(row => row.map(x => x === '' ? '' : +x));
-        let steps = [];
-        let optimal = false;
-        while (!optimal) {
-          let opportunityCosts = [];
-          for (let i = 0; i < alloc.length; i++) {
-            for (let j = 0; j < alloc[0].length; j++) {
-              if (alloc[i][j] === '' || alloc[i][j] === undefined) {
-                let loop = findClosedLoop(i, j, alloc);
-                if (loop) {
-                  let cost = 0, sign = 1, formula = '';
-                  for (let k = 0; k < loop.length; k++) {
-                    const [x, y] = loop[k];
-                    if (k === 0) formula += costMatrix[x][y];
-                    else formula += (sign > 0 ? ' + ' : ' - ') + costMatrix[x][y];
-                    cost += sign * costMatrix[x][y];
-                    sign *= -1;
-                  }
-                  opportunityCosts.push({ row: i, col: j, cost, loop, formula });
-                }
-              }
-            }
-          }
-          // Find cell with most negative opportunity cost
-          let minCell = null;
-          for (const cell of opportunityCosts) {
-            if (!minCell || cell.cost < minCell.cost) minCell = cell;
-          }
-          if (!minCell || minCell.cost >= 0) {
-            optimal = true;
-            steps.push({ allocation: alloc.map(row => [...row]), opportunityCosts, minCell: null, isOptimal: true });
-            break;
-          } else {
-            const loop = minCell.loop;
-            // Find minimum allocation among all "−" positions in the loop (odd indices)
-            let minAlloc = Infinity;
-            for (let k = 1; k < loop.length; k += 2) {
-              const [x, y] = loop[k];
-              if (alloc[x][y] < minAlloc) minAlloc = alloc[x][y];
-            }
-            // Adjust allocations along the loop
-            for (let k = 0; k < loop.length; k++) {
-              const [x, y] = loop[k];
-              if (k % 2 === 0) { // "+" position
-                if (alloc[x][y] === '' || alloc[x][y] === undefined) alloc[x][y] = 0;
-                alloc[x][y] += minAlloc;
-              } else { // "−" position
-                alloc[x][y] -= minAlloc;
-                if (alloc[x][y] === 0) alloc[x][y] = '';
-              }
-            }
-            steps.push({ allocation: alloc.map(row => [...row]), opportunityCosts, minCell, loop, minAlloc, isOptimal: false });
-          }
-        }
-        // Compute total cost for the final solution
-        let totalCost = 0;
-        for (let i = 0; i < alloc.length; i++) {
-          for (let j = 0; j < alloc[0].length; j++) {
-            const v = alloc[i][j];
-            if (v !== '' && v !== undefined) totalCost += v * costMatrix[i][j];
-          }
-        }
-        return { steps, totalCost };
       }
 
       // --- Step History Feature ---
@@ -1622,7 +1507,7 @@
       }
 
       function steppingStoneFullSolve(allocationMatrix, costMatrix) {
-        // Copy allocationMatrix
+        // Deep copy allocationMatrix
         let alloc = allocationMatrix.map(row => row.map(x => x === '' ? '' : +x));
         let steps = [];
         let optimal = false;
@@ -1677,7 +1562,7 @@
             steps.push({ allocation: alloc.map(row => [...row]), opportunityCosts, minCell, loop, minAlloc, isOptimal: false });
           }
         }
-        // Compute total cost for the final solution
+        // Compute total cost
         let totalCost = 0;
         for (let i = 0; i < alloc.length; i++) {
           for (let j = 0; j < alloc[0].length; j++) {
