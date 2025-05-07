@@ -1,195 +1,175 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Northwest Corner Method</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background-color: #f2eafa;
-        color: #5c4b7d;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        margin: 0;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Northwest Corner Method</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2eafa;
+      color: #5c4b7d;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    .active {
+      display: flex;
+    }
+    input[type="number"] {
+      width: 60px;
+      padding: 5px;
+      margin: 2px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background-color: #b583d8;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #9c6cc1;
+    }
+    .button-container {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    table {
+      border-collapse: collapse;
+    }
+    td,
+    th {
+      border: 1px solid #b583d8;
+      padding: 10px;
+      text-align: center;
+      min-width: 60px;
+    }
+    th {
+      background-color: #f0dffb;
+    }
+    .step {
+      margin-top: 20px;
+    }
+    .diagonal-cell {
+      position: relative;
+      width: 80px;
+      height: 60px;
+    }
+    .diagonal-cell::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+              to left bottom,
+              transparent 49.5%,
+              #b583d8 49.5%,
+              #b583d8 50.5%,
+              transparent 50.5%
+      );
+      z-index: 1;
+      pointer-events: none;
+    }
+    .top-value {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-weight: bold;
+      font-size: 17px;
+    }
+    .bottom-value {
+      position: absolute;
+      bottom: 10px;
+      left: 20px;
+      font-weight: bold;
+      font-size: 17px;
+    }
+    .equal {
+      color: green;
+    }
+    .not-equal {
+      color: red;
+    }
+    #stepHistoryContainer {
+      display: none;
+    }
+    .history-btn {
+      background-color: #b583d8;
+      color: white;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+    .history-btn:hover {
+      background-color: #9c6cc1;
+    }
+  </style>
+</head>
+<body>
+<div class="screen active" id="startScreen">
+  <h2>NORTHWEST CORNER METHOD</h2>
+  <button onclick="nextScreen('dimensionScreen')">START</button>
+</div>
 
-      .screen {
-        display: none;
-        flex-direction: column;
-        align-items: center;
-        gap: 20px;
-        background: white;
-        padding: 30px;
-        border-radius: 12px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      }
+<div class="screen" id="dimensionScreen">
+  <h2>NORTHWEST CORNER METHOD</h2>
+  <label
+  >Supply Points: <input type="number" id="supplyCount" min="1"
+  /></label>
+  <label
+  >Demand Points: <input type="number" id="demandCount" min="1"
+  /></label>
+  <div class="button-container">
+    <button onclick="previousScreen()">Back</button>
+    <button onclick="generateCombinedMatrix()">Generate Input Table</button>
+  </div>
+</div>
 
-      .active {
-        display: flex;
-      }
+<div class="screen" id="inputMatrixScreen">
+  <h2>Enter Cost, Supply and Demand</h2>
+  <table id="inputMatrix"></table>
+  <div class="button-container">
+    <button onclick="goBackToDimensionScreen()">Back</button>
+    <button onclick="solveWithNorthwestCorner()">Solve</button>
+  </div>
+</div>
 
-      input[type="number"] {
-        width: 60px;
-        padding: 5px;
-        margin: 2px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-      }
-
-      button {
-        background-color: #b583d8;
-        color: white;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-      }
-
-      button:hover {
-        background-color: #9c6cc1;
-      }
-
-      .button-container {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-      }
-
-      table {
-        border-collapse: collapse;
-      }
-
-      td,
-      th {
-        border: 1px solid #b583d8;
-        padding: 10px;
-        text-align: center;
-        min-width: 60px;
-      }
-
-      th {
-        background-color: #f0dffb;
-      }
-
-      .step {
-        margin-top: 20px;
-      }
-
-      .diagonal-cell {
-        position: relative;
-        width: 80px;
-        height: 60px;
-      }
-
-      .diagonal-cell::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(
-          to left bottom,
-          transparent 49.5%,
-          #b583d8 49.5%,
-          #b583d8 50.5%,
-          transparent 50.5%
-        );
-        z-index: 1;
-        pointer-events: none;
-      }
-
-      .top-value {
-        position: absolute;
-        top: 10px;
-        right: 20px;
-        font-weight: bold;
-        font-size: 17px;
-      }
-
-      .bottom-value {
-        position: absolute;
-        bottom: 10px;
-        left: 20px;
-        font-weight: bold;
-        font-size: 17px;
-      }
-
-      .equal {
-        color: green;
-      }
-
-      .not-equal {
-        color: red;
-      }
-
-      #stepHistoryContainer {
-        display: none;
-      }
-
-      .history-btn {
-        background-color: #b583d8;
-        color: white;
-        padding: 8px 12px;
-        border: none;
-        border-radius: 4px;
-        margin-left: 10px;
-        cursor: pointer;
-      }
-
-      .history-btn:hover {
-        background-color: #9c6cc1;
-      }
-    </style>
-  </head>
-
-  <body>
-    <div class="screen active" id="startScreen">
-      <h2>NORTHWEST CORNER METHOD</h2>
-      <button onclick="nextScreen('dimensionScreen')">START</button>
-    </div>
-
-    <div class="screen" id="dimensionScreen">
-      <h2>NORTHWEST CORNER METHOD</h2>
-      <label
-        >Supply Points: <input type="number" id="supplyCount" min="1"
-      /></label>
-      <label
-        >Demand Points: <input type="number" id="demandCount" min="1"
-      /></label>
-      <div class="button-container">
-        <button onclick="previousScreen()">Back</button>
-        <button onclick="generateCombinedMatrix()">Generate Input Table</button>
-      </div>
-    </div>
-
-    <div class="screen" id="inputMatrixScreen">
-      <h2>Enter Cost, Supply and Demand</h2>
-      <table id="inputMatrix"></table>
-      <div class="button-container">
-        <button onclick="goBackToDimensionScreen()">Back</button>
-        <button onclick="solveWithNorthwestCorner()">Solve</button>
-      </div>
-    </div>
-
-    <div class="screen" id="resultScreen">
-      <h2>Step-by-Step Allocation</h2>
-      <div id="stepOutput"></div>
-      <table id="allocationTable"></table>
-      <div class="button-container">
-        <button onclick="goBackToInputMatrix()">Back</button>
-        <button id="nextStepButton" onclick="showNextStep()">Next Step</button>
-      </div>
-      <button id="toggleStepHistoryBtn" style="margin-top: 10px">
-        Show Step History
-      </button>
-      <button id="updateHistoryBtn" class="history-btn">Update History</button>
-      <div
-        id="stepHistoryContainer"
-        style="
+<div class="screen" id="resultScreen">
+  <h2>Step-by-Step Allocation</h2>
+  <div id="stepOutput"></div>
+  <table id="allocationTable"></table>
+  <div class="button-container">
+    <button onclick="goBackToInputMatrix()">Back</button>
+    <button id="nextStepButton" onclick="showNextStep()">Next Step</button>
+  </div>
+  <button id="toggleStepHistoryBtn" style="margin-top: 10px">
+    Show Step History
+  </button>
+  <button id="updateHistoryBtn" class="history-btn">Update History</button>
+  <div
+          id="stepHistoryContainer"
+          style="
           display: none;
           max-height: 350px;
           overflow-y: auto;
@@ -200,18 +180,19 @@
           background: #faf7ff;
           padding: 10px;
         "
-      ></div>
-    </div>
+  ></div>
+</div>
 
-    <div class="screen" id="steppingStoneScreen">
-      <h2>Stepping Stone Method</h2>
-      <div id="steppingStoneOutput"></div>
-      <table id="steppingStoneTable"></table>
-      <div class="button-container">
-        <button onclick="goBackToInputMatrix()">Back</button>
-        <button id="restartButton" onclick="location.reload()">Restart</button>
-      </div>
-    </div>
+<div class="screen" id="steppingStoneScreen">
+  <h2>Stepping Stone Method</h2>
+  <div id="steppingStoneOutput"></div>
+  <table id="steppingStoneTable"></table>
+  <div class="button-container">
+    <button onclick="goBackToInputMatrix()">Back</button>
+    <button id="restartButton" onclick="location.reload()">Restart</button>
+    <button id="runSteppingStoneBtn">Run Stepping Stone Method</button>
+  </div>
+</div>
 
     <script>
       let supplyCount, demandCount;
@@ -1333,6 +1314,89 @@
 
         container.scrollTop = scrollTop;
       }
+    </script>
+    <script src="steppingstonemethod.js"></script>
+    <script>
+      // Wait until DOM and steppingstonemethod.js are loaded
+      document.addEventListener("DOMContentLoaded", function () {
+        var runBtn = document.getElementById("runSteppingStoneBtn");
+        if (runBtn) {
+          runBtn.onclick = function () {
+            // Use your global variables from the main script.
+            // They must exist and be up-to-date!
+            // If your steppingstonemethod.js uses named exports, you may need to change this.
+            // For this example, the functions are global.
+
+            // Call the external function
+            // It returns an array of steps (see steppingstonemethod.js)
+            try {
+              // Use the current costMatrix, allocationMatrix, supplyCount, demandCount
+              if (
+                      typeof solveSteppingStoneMethod !== "function" ||
+                      !window.costMatrix ||
+                      !window.allocationMatrix ||
+                      !window.supplyCount ||
+                      !window.demandCount
+              ) {
+                alert(
+                        "Stepping Stone Method functions or data not available. Please make sure you've solved the Northwest Corner Method first."
+                );
+                return;
+              }
+
+              // Deep copy allocationMatrix for safety
+              var allocCopy = allocationMatrix.map(row => row.slice());
+
+              var steps = solveSteppingStoneMethod(
+                      costMatrix,
+                      allocCopy,
+                      supplyCount,
+                      demandCount
+              );
+              // Show the first step in the UI
+              displaySteppingStoneStep(steps, 0);
+
+              // Optional: let user step through all steps
+              // Save steps globally for next/prev navigation if you like
+              window.steppingStoneSteps = steps;
+              window.steppingStoneStepIndex = 0;
+            } catch (e) {
+              alert("Error running Stepping Stone Method: " + e.message);
+            }
+          };
+        }
+      });
+
+      // Helper to display a stepping stone step
+      function displaySteppingStoneStep(steps, idx) {
+        if (!steps || steps.length === 0) return;
+        if (idx < 0) idx = 0;
+        if (idx >= steps.length) idx = steps.length - 1;
+        var step = steps[idx];
+
+        var out = "<h3>" + step.message + "</h3>";
+        if (step.opportunityCosts) {
+          out += "<h4>Opportunity Costs:</h4><ul>";
+          for (const oc of step.opportunityCosts) {
+            out += `<li>Cell (${oc.cell.row + 1},${oc.cell.col + 1}): ${oc.opportunityCost}</li>`;
+          }
+          out += "</ul>";
+        }
+        // Display the allocation matrix as a table
+        if (step.allocationMatrix) {
+          out += "<table border='1'>";
+          for (const row of step.allocationMatrix) {
+            out += "<tr>";
+            for (const cell of row) {
+              out += `<td>${cell}</td>`;
+            }
+            out += "</tr>";
+          }
+          out += "</table>";
+        }
+        document.getElementById("steppingStoneOutput").innerHTML = out;
+      }
+      // Optionally: add Next/Prev buttons for step navigation
     </script>
   </body>
 </html>
