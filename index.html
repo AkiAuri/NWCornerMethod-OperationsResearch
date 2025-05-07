@@ -667,6 +667,13 @@
       }
 
       function showNextStep() {
+        // Prevent error if no more steps
+        if (stepIndex >= steps.length) {
+          nextScreen("steppingStoneScreen");
+          showSteppingStoneStep();
+          return;
+        }
+
         const stepOutput = document.getElementById("stepOutput");
         const allocationTable = document.getElementById("allocationTable");
         const nextStepButton = document.getElementById("nextStepButton");
@@ -1026,10 +1033,9 @@
           // Update the step output
           stepOutput.innerHTML = `<p class="step" style="color: green;">All allocations completed. Supply and demand are now zero.</p>`;
 
-          // Instead of updating the button, immediately switch to Stepping Stone Method
-          nextScreen("steppingStoneScreen");
-          showSteppingStoneStep();
-          return; // Prevent further execution
+          // Overwrite the button to "Compute Cost"
+          nextStepButton.textContent = "Compute Cost";
+          nextStepButton.onclick = displayFinalCost;
         }
       }
 
